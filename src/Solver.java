@@ -1,7 +1,19 @@
+import edu.princeton.cs.algs4.MinPQ;
+
 public class Solver {
+    MinPQ<Board> pq;
+
     public Solver(Board initial)           // find a solution to the initial board (using the A* algorithm)
     {
+        MinPQ<Board> pq = new MinPQ<Board>();
 
+        Board prev = initial;
+        for (Board neighbor : prev.neighbors()) {
+            if (!neighbor.equals(prev)) {
+                pq.insert(neighbor);
+            }
+        }
+        Board min = pq.delMin();
     }
     public boolean isSolvable()            // is the initial board solvable?
     {
