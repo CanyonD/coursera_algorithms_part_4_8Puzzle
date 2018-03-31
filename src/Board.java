@@ -1,316 +1,175 @@
-import java.util.Iterator;
-
-import edu.princeton.cs.algs4.Queue;
 import edu.princeton.cs.algs4.Stack;
-import edu.princeton.cs.algs4.StdOut;
+
+import java.util.Arrays;
 
 public class Board {
-    private char [] boardTable;
-    private int dimensionVal = 0;
-    private int manhattanVal = 999999;
-    private int hashVal = 0;
-    private int zeroI = 0;
-    private int zeroJ = 0;
-    private int zeroIPrevious = 0;
-    private int zeroJPrevious = 0;
+    private final int[][] tiles;
+    private int size;
+    private int zeroCol;
+    private int zeroRow;
+    private static int manhattan;
 
-    public Board(int[][] blocks)           // construct a board from an n-by-n array of blocks
-    {
-        int N = blocks[0].length;
-        if (blocks[1].length != N)
-            StdOut.println("Array is not square");
-        dimensionVal = N;
-        boardTable = new char[N * N];
-        for (int i = 0; i < N; i++) {
-            for (int j = 0; j < N; j++) {
-                if (blocks[i][j] == 0) {
-                    zeroI = i;
-                    zeroJ = j;
-                    zeroIPrevious = i;
-                    zeroJPrevious = j;
-                }
-                set(i, j, blocks[i][j]);
+    public Board(int[][] blocks) {
+        size = blocks.length;
+        tiles = new int[size][size];
+        for(int i = 0; i < size; i++) {
+            for(int j = 0; j < size; j++) {
+                this.tiles[i][j] = blocks[i][j];
+                if(tiles[i][j] == 0)
+                    setZero(i, j);
             }
         }
-        //goalBoard=getGoal();
-        manhattanVal = manhattan(); // initialize
-        hashVal = hash(); // init hash
     }
 
-    private Board(int size) {
-        boardTable = new char[size * size];
-        dimensionVal = size;
-        //goalBoard=getGoal();
+    private void setZero(int i, int j){
+        this.zeroRow = i;
+        this.zeroCol = j;
     }
 
-
-    // (where blocks[i][j] = block in row i, column j)
-    public int dimension()                 // board dimension n
-    {
-        return dimensionVal;
+    public int dimension(){
+        return size;
     }
-    public int hamming()                   // number of blocks out of place
-    {
-        int hamming = 0;
-        for (int i = 0; i < (dimensionVal * dimensionVal) - 1; i++) {
-            if (this.boardTable[i] != (char) (i + 1))
-                hamming++;
-        }
-        return hamming;
-    }
-    public int manhattan()                 // sum of Manhattan distances between blocks and goal
-    {
-        if (manhattanVal != 999999)
-            return manhattanVal; // cached value
-        manhattanVal = 0;
-        for (int i = 0; i < dimension(); i++)
-            for (int j = 0; j < dimension(); j++) {
-                int val = get(i, j);
-                if (val != 0) { // we do not count zero
-                    manhattanVal += manhattanGet(i, j, val);
-                }
-            }
-        return manhattanVal;
-    }
-    public boolean isGoal()                // is this board the goal board?
-    {
-        if (this.manhattan()!=0)
-            return false;
-        if (this.zeroI!=(this.dimension()-1))
-            return false;
-        if (this.zeroJ!=(this.dimension()-1))
-            return false;
 
-        for (int i = 0; i < dimensionVal * dimensionVal-1; i++) {
-            if (this.boardTable[i] != (char)(i+1))
-                return false;
-        }
-        return true;
-    }
-    public Board twin()                    // a board that is obtained by exchanging any pair of blocks
-    {
-        Board twin = new Board(dimensionVal);
-        for (int i = 0; i < dimensionVal; i++) {
-            for (int j = 0; j < dimensionVal; j++) {
-                twin.set(i, j, this.get(i, j));
-            }
-        }
-        twin.dimensionVal = this.dimensionVal;
-        twin.hashVal = this.hashVal;
-        twin.manhattanVal = this.manhattanVal;
-
-        for (int i = 0; i < dimensionVal; i++) {
-            for (int j = 0; j < dimensionVal - 1; j++) {
-                if (twin.get(i, j) != 0 && twin.get(i, j + 1) != 0) {
-                    int temp = twin.get(i, j);
-                    twin.set(i, j, twin.get(i, j + 1));
-                    twin.set(i, j + 1, temp);
-                    twin.reset();
-                    return twin;
-                }
-            }
-        }
-        return twin;
-    }
-    public boolean equals(Object y)        // does this board equal y?
-    {
-        if (y==null)  return false;
-        if (this == y)  return true;
-        if (y.getClass() != this.getClass()) return false;
-
-        Board that = (Board)y;
-        if (that.manhattan() != this.manhattan())
-            return false;
-        if (that.zeroI != this.zeroI)
-            return false;
-        if (that.zeroJ != this.zeroJ)
-            return false;
-        if (that.hash() != this.hash())
-            return false;
-        for (int i = 0; i < dimensionVal * dimensionVal; i++) {
-            if (this.boardTable[i] != that.boardTable[i])
-                return false;
-        }
-        return true;
-    }
-    public Iterable<Board> neighbors()     // all neighboring boards
-    {
-        Queue<Board> neighbours = new Queue <Board>();
-        boolean up = true;
-        boolean down = true;
-        boolean left = true;
-        boolean right = true;
-        Board b = Board.this;
-        if (b.zeroI == 0)
-            left = false;
-        if (b.zeroI == b.dimensionVal - 1)
-            right = false;
-        if (b.zeroJ == 0)
-            up = false;
-        if (b.zeroJ == b.dimensionVal - 1)
-            down = false;
-        //if (right
-        //		&& !((zeroI + 1) == zeroIPrevious && zeroJ == zeroJPrevious)) {
-        if (right){
-            Board copy = new Board(dimension());
-            copy = b.getCopy();
-            copy.moveZeroFromTo(copy.zeroI, copy.zeroJ, copy.zeroI + 1,
-                    copy.zeroJ);
-            copy.hashUpdate();
-            copy.zeroI = b.zeroI + 1;
-            copy.zeroJ = b.zeroJ;
-            copy.zeroIPrevious = b.zeroI;
-            copy.zeroJPrevious = b.zeroJ;
-            neighbours.enqueue(copy);
-        }
-
-        if (down){
-            // if (down
-            //		&& !((zeroI) == zeroIPrevious && (zeroJ + 1) == zeroJPrevious)) {
-            Board copy = new Board(dimension());
-            copy = b.getCopy();
-            copy.moveZeroFromTo(copy.zeroI, copy.zeroJ, copy.zeroI,
-                    copy.zeroJ + 1);
-            copy.hashUpdate();
-            copy.zeroI = b.zeroI;
-            copy.zeroJ = b.zeroJ + 1;
-            copy.zeroIPrevious = b.zeroI;
-            copy.zeroJPrevious = b.zeroJ;
-            neighbours.enqueue(copy);
-        }
-
-        if (left){
-            //if (left
-            //		&& !((zeroI - 1) == zeroIPrevious && zeroJ == zeroJPrevious)) {
-            Board copy = new Board(dimension());
-            copy = b.getCopy();
-            copy.moveZeroFromTo(copy.zeroI, copy.zeroJ, copy.zeroI - 1,
-                    copy.zeroJ);
-            copy.hashUpdate();
-            copy.zeroI = b.zeroI - 1;
-            copy.zeroJ = b.zeroJ;
-            copy.zeroIPrevious = b.zeroI;
-            copy.zeroJPrevious = b.zeroJ;
-            neighbours.enqueue(copy);
-        }
-
-        if (up){
-            //if (up
-            //		&& !((zeroI) == zeroIPrevious && (zeroJ - 1) == zeroJPrevious)) {
-            Board copy = new Board(dimension());
-            copy = b.getCopy();
-            copy.moveZeroFromTo(copy.zeroI, copy.zeroJ, copy.zeroI,
-                    copy.zeroJ - 1);
-            copy.hashUpdate();
-            copy.zeroI = b.zeroI;
-            copy.zeroJ = b.zeroJ - 1;
-            copy.zeroIPrevious = b.zeroI;
-            copy.zeroJPrevious = b.zeroJ;
-            neighbours.enqueue(copy);
-        }
-
-        return neighbours;
-    }
-    public String toString()               // string representation of this board (in the output format specified below)
-    {
+    public String toString() {
         StringBuilder s = new StringBuilder();
-        s.append(dimensionVal + "\n");
-        for (int i = 0; i < dimensionVal; i++) {
-            for (int j = 0; j < dimensionVal; j++) {
-
-                s.append(String.format("%2d ", this.get(i, j)));
+        s.append(size + "\n");
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                s.append(String.format("%2d ", tiles[i][j]));
             }
             s.append("\n");
         }
         return s.toString();
     }
 
-    private Board getCopy() {
-        Board copy = new Board(dimensionVal);
-        for (int i = 0; i < dimensionVal * dimensionVal; i++) {
-            copy.boardTable[i] = this.boardTable[i];
+    public int manhattan(){
+        int arrayPosition;
+        int tile;
+        manhattan = 0;
+        for(int i = 0; i < size; i++) {
+            for(int j = 0; j < size; j++) {
+                tile = tiles[i][j];
+                if(tile == 0)
+                    continue;
+                arrayPosition = 1 + j + (i*this.size);
+
+                if(arrayPosition-tile == 0)
+                    continue;
+                double ii = Math.floor(((double)(tile - 1))/this.size);
+                double jj = (tile - 1)%this.size;
+                manhattan +=  (Math.abs(i - ii) + Math.abs(j - jj));
+            }
         }
-        copy.hashVal = this.hashVal;
-        copy.manhattanVal = this.manhattanVal;
-        copy.zeroI = this.zeroI;
-        copy.zeroJ = this.zeroJ;
-        copy.zeroIPrevious = this.zeroIPrevious;
-        copy.zeroJPrevious = this.zeroJPrevious;
-        //	copy.goalBoard = this.goalBoard;
+        return manhattan;
+    }
+
+    public int hamming() {
+        int arrayPosition;
+        int tile;
+        int displaced = 0;
+
+        for(int i = 0; i < size; i++){
+            for(int j = 0; j < size; j++){
+                tile = tiles[i][j];
+                if (tile == 0)
+                    continue;
+                arrayPosition = 1+ j + (i*this.size);
+
+                if (tile != arrayPosition)
+                    displaced++;
+                else
+                    continue;
+            }
+        }
+        return displaced;
+    }
+
+    public boolean isGoal(){
+        int arrayPosition;
+        int tile;
+
+        for(int i = 0; i <size; i++){
+            for(int j = 0; j<size; j++){
+                if(i == size-1 && j == (size - 1))
+                    continue;
+                tile = tiles[i][j];
+                arrayPosition = 1 + j + (i*this.size);
+                if(tile != arrayPosition)
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    private int[][] deepCopy(int[][] array){
+        int[][] copy = new int[size][size];
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                copy[i][j] = array[i][j];
+            }
+        }
         return copy;
-
     }
 
-    private void reset() {
-        this.hashVal = 0;
-        this.manhattanVal = 999999; //impossible in all practical cases
-        manhattan();
-        hash();
-
-    }
-
-    private int manhattanGet(int i, int j, int value) {
-        int idist = i - rowGoal(value);
-        if (idist < 0)
-            idist = -idist;
-        int jdist = j - colGoal(value);
-        if (jdist < 0)
-            jdist = -jdist;
-        return (idist + jdist);
-    }
-
-    private int rowGoal(int value) {
-        if (value == 0)
-            return dimensionVal - 1;
-        return (value - 1) / dimensionVal;
-    }
-
-    private int colGoal(int value) {
-        if (value == 0)
-            return dimensionVal - 1;
-        return (value - 1) % dimensionVal;
-    }
-
-    private void set(int i, int j, int value) {
-        boardTable[j + (i * dimensionVal)] = (char) value;
-    }
-
-    private int get(int i, int j) {
-        return (int) boardTable[j + (i * dimensionVal)];
-    }
-
-    private int hash() {
-        if (this.hashVal != 0)
-            return hashVal;
-        int hash = 0;
-        for (int i = 0; i < dimensionVal * dimensionVal; i++) {
-            hash += boardTable[i];
-            hash = hash << 1;
+    public Board twin() {
+        int[][] twin = deepCopy(tiles);
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (tiles[i][j] != 0 && j < (size - 1) && tiles[i][j + 1] != 0) {
+                    int swap = twin[i][j];
+                    twin[i][j] = twin[i][j + 1];
+                    twin[i][j + 1] = swap;
+                    return new Board(twin);
+                }
+            }
         }
-        return hash;
+        return new Board(twin);
     }
 
-    private void hashUpdate() {
-        int hash = 0;
-        for (int i = 0; i < dimensionVal * dimensionVal; i++) {
-            hash += boardTable[i];
-            hash = hash << 1;
+    public boolean equals(Object y) {
+        if (y == null || y.getClass() != this.getClass()) {
+            throw new IllegalArgumentException();
         }
-        this.hashVal = hash;
+        Board that = (Board) y;
+        if (y == null) return false;
+        if (this == y) return true;
+        if (this.getClass() != y.getClass()) return false;
+        if (that.size != this.size) return false;
+
+        return Arrays.deepEquals(this.tiles, that.tiles);
     }
 
-    private void moveZeroFromTo(int i, int j, int newi, int newj) {
-        int val = get(newi, newj);
-        set(newi, newj, 0);
-        set(i, j, val);
-        int oldmanhattan = manhattanGet(newi, newj, val);
-        int newmanhattan = manhattanGet(i, j, val);
-        manhattanVal = manhattanVal - oldmanhattan + newmanhattan;
+    public Iterable<Board> neighbors() {
+        Stack<Board> boards = new Stack<Board>();
+
+        if(zeroRow > 0) {
+            Board boardUP = new Board(swap(tiles,-1,0));
+            boards.push(boardUP);
+        }
+
+        if(zeroRow < size-1) {
+            Board boardDown = new Board(swap(tiles,1,0));
+            boards.push(boardDown);
+        }
+
+        if(zeroCol > 0) {
+            Board boardLeft = new Board(swap(tiles,0,-1));
+            boards.push(boardLeft);
+        }
+
+        if(zeroCol <size-1) {
+            Board boardRight = new Board(swap(tiles,0,1));
+            boards.push(boardRight);
+        }
+
+        return boards;
 
     }
+    private int[][] swap(int[][] board, int rowOffset, int colOffset){
+        int[][] tempBoard =  deepCopy(board);
+        tempBoard[zeroRow][zeroCol]= tiles[zeroRow+rowOffset][zeroCol+colOffset];
+        tempBoard[zeroRow+rowOffset][zeroCol+colOffset]=0;
 
-    public static void main(String[] args) // unit tests (not graded)
-    {
-
+        return tempBoard;
     }
 }
